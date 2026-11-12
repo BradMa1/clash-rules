@@ -1,0 +1,148 @@
+# 极简版：只有两种模式，没有地区分组、没有业务分组
+#
+#   模式一（手动）：进「🚀 节点选择」，点哪个用哪个，不自动跳。
+#   模式二（自动）：进「🚀 节点选择」，点第一项「♻️ 自动选择」，此时在全部节点里
+#                   测速取最快的那台；它挂了会被测速剔除，自动换下一个。
+#
+# 节点来自「合集」全量（/nodes.yaml），不按地区拆 provider。
+# 所以面板里新建订阅 —— 不管是日本、韩国还是别的什么 —— 只要勾进合集，
+# 就自动出现在这里，配置一个字都不用改，客户端也不用重导。
+#
+# 国内流量（含银行 App）三层直连，这个不简化：银行域名 → geosite:cn → GEOIP,CN。
+#
+# 用法：python3 scripts/deploy.py --config-only
+
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: warning
+ipv6: false
+unified-delay: true
+tcp-concurrent: true
+find-process-mode: off
+external-controller: 127.0.0.1:9090
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+# ---------------------------------------------------------------- DNS
+dns:
+  enable: true
+  ipv6: false
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - "+.lan"
+    - "+.local"
+    - "*.msftconnecttest.com"
+    - "*.msftncsi.com"
+    # 你自己的订阅/面板域名要加到这里（走真实 IP），否则客户端拉订阅时拿到 fake-ip 会失败。
+    # 示例：把 example.com 换成你的域名，一行一个。
+    - "+.example.com"
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  proxy-server-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  fallback:
+    - https://1.1.1.1/dns-query
+    - https://dns.google/dns-query
+
+# ------------------------------------------------- GeoIP / GeoSite 数据库
+# GEOIP,CN 要用；默认的 GitHub 源国内拉不动，换 jsdelivr（cdn 比 testingcf 稳）。
+geox-url:
+  geoip: https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat
+  geosite: https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat
+  mmdb: https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb
+  asn: https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/GeoLite2-ASN.mmdb
+geo-auto-update: true
+geo-update-interval: 168
+
+# ---------------------------------------------------------------- 节点源
+# 这里填你的订阅地址（Sub-Store 合集下载链接，或任何 mihomo 节点订阅）。
+# VPS 废了、换了订阅，只改这一行就行，其余配置不用动。
+proxy-providers:
+  all:
+    type: http
+    url: "在这里填你的订阅地址"
+    interval: 3600
+    path: ./proxy_providers/all.yaml
+    health-check: {enable: true, url: http://www.gstatic.com/generate_204, interval: 300}
+
+# ---------------------------------------------------------------- 分组
+# 就这两个。第二个不点它也在跑，它是第一个的第一项。
+proxy-groups:
+
+  # 「节点选择」= 你的总开关。
+  #   第一项「♻️ 自动选择」→ 自动模式
+  #   下面的每一台具体节点  → 手动模式（点了就固定用这台）
+  - name: 🚀 节点选择
+    type: select
+    proxies: [♻️ 自动选择]
+    use: [all]
+
+  # 自动模式的本体：全部节点测速，取延迟最低的。
+  # 某台连不上会被测速判死、自动排除，也就是「断了换下一个」。
+  # lazy: false = 即使当下没流量也定时测，避免下次连接时撞上已经挂掉的节点。
+  - name: ♻️ 自动选择
+    type: url-test
+    use: [all]
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    lazy: false
+
+# ---------------------------------------------------------------- 规则
+# 只区分「国内」和「国外」。国内直连，其余全走「🚀 节点选择」（你选的手动或自动）。
+rules:
+  # 1. 本机与局域网
+  - GEOIP,LAN,DIRECT,no-resolve
+  - DOMAIN-SUFFIX,local,DIRECT
+  - RULE-SET,private,DIRECT
+
+  # 2. 银行 / 金融：单独提前判。
+  # 这些域名有的解析到海外 CDN，只靠下面的 GEOIP,CN 会漏判成国外 → 走代理 →
+  # App 报「网络异常」或触发风控。
+  - RULE-SET,bank-cn,DIRECT
+
+  # 3. 国内主流网站：geosite:cn 一条覆盖（淘宝/微信/B站/百度/知乎/京东/12306…）
+  - RULE-SET,cn-domain,DIRECT
+
+  # 4. 更宽的国内兜底：域名不在 cn 名单里、但服务器落在国内的（海外域名+国内 CDN 等），
+  #    提前在域名层拦下，不用等它落到按 IP 实时查那一步（fake-ip 下按 IP 查有时会失真）。
+  - RULE-SET,geolocation-cn,DIRECT
+
+  # 5. 国内 IP 兜底（App 直连 IP、不走域名的情况）
+  - GEOIP,CN,DIRECT,no-resolve
+
+  # 6. 其余全部走代理
+  - MATCH,🚀 节点选择
+
+# ---------------------------------------------------------------- 规则集
+# 托管在 GitHub 仓库 BradMa1/clash-rules，经 jsdelivr CDN 分发，不依赖任何自建 VPS。
+# 换仓库/换分支时改这里的地址即可（@main 是分支名）。
+rule-providers:
+  private:        {type: http, behavior: domain, format: mrs, interval: 86400, url: "https://cdn.jsdelivr.net/gh/BradMa1/clash-rules@main/geosite/private.mrs"}
+  bank-cn:        {type: http, behavior: domain, format: mrs, interval: 86400, url: "https://cdn.jsdelivr.net/gh/BradMa1/clash-rules@main/geosite/category-bank-cn.mrs"}
+  cn-domain:      {type: http, behavior: domain, format: mrs, interval: 86400, url: "https://cdn.jsdelivr.net/gh/BradMa1/clash-rules@main/geosite/cn.mrs"}
+  geolocation-cn: {type: http, behavior: domain, format: mrs, interval: 86400, url: "https://cdn.jsdelivr.net/gh/BradMa1/clash-rules@main/geosite/geolocation-cn.mrs"}
+
+# ---------------------------------------------------------------- 流量嗅探
+# 有些 App 直接连 IP、不送域名，嗅探能把域名还原出来，GEOIP,CN 判得更准。
+sniffer:
+  enable: true
+  override-destination: true
+  parse-pure-ip: true
+  sniff:
+    TLS:
+      ports: [443, 8443]
+    HTTP:
+      ports: [80, 8080-8880]
+  skip-domain:
+    - "+.apple.com"
+    - "+.mijia.com"
+    - "+.mi.com"
+    - "dlg.io.mi.com"
+    - "+.push.apple.com"
