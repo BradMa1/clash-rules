@@ -28,8 +28,9 @@ clash-rules/
 
 1. 下载 `config.example.yaml`
 2. 把 `proxy-providers.all.url` 里的 `"在这里填你的订阅地址"` 改成你自己的节点订阅地址
-3. （可选）把 `fake-ip-filter` 里的 `+.example.com` 换成你自己的订阅/面板域名
-4. 导入客户端（Clash Verge / v2rayN / Stash 等）
+3. 导入客户端（Clash Verge / v2rayN / Stash / 小火箭 等）
+
+就这三步，其余不用动。
 
 ## 规则集
 
