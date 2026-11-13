@@ -6,9 +6,10 @@
 
 ```
 clash-rules/
-├── config.example.yaml   # 极简配置模板（2 个组：手动/自动 + 国内直连）
+├── config.example.yaml        # Clash 极简配置（mihomo：2 组 手动/自动 + 国内直连）
+├── shadowrocket.example.conf  # 小火箭极简配置（2 组 手动/自动 + 国内直连）
 ├── README.md
-└── geosite/              # 规则集（.mrs，供 config 的 rule-providers 拉取）
+└── geosite/                   # 规则集（.mrs，供 config 的 rule-providers 拉取）
     ├── private.mrs
     ├── category-bank-cn.mrs
     ├── cn.mrs
@@ -31,6 +32,18 @@ clash-rules/
 3. 导入客户端（Clash Verge / v2rayN / Stash / 小火箭 等）
 
 就这三步，其余不用动。
+
+## shadowrocket.example.conf 是什么
+
+给小火箭（Shadowrocket，iOS）用的极简配置，同样是「只有两种模式」：
+
+- **🚀 节点选择**（select）：第一项「♻️ 自动选择」= 自动模式，往下是订阅注入的节点 = 手动固定
+- **♻️ 自动选择**（url-test）：全部节点测速取最快，挂了自动换下一个
+
+国内流量走 ChinaMax 名单直连，被墙流量走 `ProxyGFWlist` 代理，其余兜底走代理。
+
+**注意**：这份小火箭配置里，规则集引用的是公共开源仓库（blackmatrix7 / ACL4SSR / Aethersailor），
+节点通过你的订阅自动注入（`use=true`），配置里不写死节点。
 
 ## 规则集
 
