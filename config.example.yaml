@@ -37,6 +37,8 @@ dns:
     - "+.local"
     - "*.msftconnecttest.com"
     - "*.msftncsi.com"
+    # shlii.io 用 Cloudflare 做地区风控，fake-ip 会触发"地区访问策略"拦截，必须走真实 IP
+    - "+.shlii.io"
   nameserver:
     - 223.5.5.5
     - 119.29.29.29
