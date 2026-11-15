@@ -1,29 +1,26 @@
 # clash-rules
 
-自建节点用的 clash 配置模板 + 规则集，经 jsdelivr CDN 分发，不依赖任何固定 VPS。
+自建节点用的 clash / 小火箭 极简配置模板，规则集走 MetaCubeX 官方源，不依赖任何固定 VPS。
 
 ## 目录
 
 ```
 clash-rules/
-├── config.example.yaml        # Clash 极简配置（mihomo：2 组 手动/自动 + 国内直连）
-├── shadowrocket.example.conf  # 小火箭极简配置（2 组 手动/自动 + 国内直连）
-├── README.md
-└── geosite/                   # 规则集（.mrs，供 config 的 rule-providers 拉取）
-    ├── private.mrs
-    ├── category-bank-cn.mrs
-    ├── cn.mrs
-    └── geolocation-cn.mrs
+├── config.example.yaml        # Clash 极简配置（mihomo：手动/自动 + 全局开关 + 国内直连）
+├── shadowrocket.example.conf  # 小火箭极简配置（手动/自动 + 国内直连）
+└── README.md
 ```
 
 ## config.example.yaml 是什么
 
-一份「只有两种模式」的极简配置：
+一份「手动选一台 / 自动最快」的极简配置，四种分组：
 
-- **🚀 节点选择**（select）：第一项「♻️ 自动选择」= 自动模式，往下每一台节点 = 手动固定
+- **🚀 节点选择**（select）：总开关，第一项「🌐 全局代理」、第二项「♻️ 自动选择」，往下每一台节点 = 手动固定
+- **🌐 全局代理**（select）：内部指向「自动选择」，切到它 = 所有流量（含国内）都走代理
 - **♻️ 自动选择**（url-test）：全部节点测速取最快，挂了自动换下一个
+- **🔀 分流开关**（select）：国内流量默认直连，切到「全局代理」则国内也走代理
 
-国内流量三层直连（银行域名 → geosite:cn → geolocation-cn → GEOIP,CN），其余全走你选的组。
+国内流量三层识别（银行域名 → geosite:cn → geolocation-cn → GEOIP,CN），其余全走你选的组。
 
 ## 怎么用
 
@@ -35,7 +32,7 @@ clash-rules/
 
 ## shadowrocket.example.conf 是什么
 
-给小火箭（Shadowrocket，iOS）用的极简配置，同样是「只有两种模式」：
+给小火箭（Shadowrocket，iOS）用的极简配置，同样是「手动/自动」两种模式：
 
 - **🚀 节点选择**（select）：第一项「♻️ 自动选择」= 自动模式，往下是订阅注入的节点 = 手动固定
 - **♻️ 自动选择**（url-test）：全部节点测速取最快，挂了自动换下一个
@@ -47,10 +44,10 @@ clash-rules/
 
 ## 规则集
 
-规则集托管在本仓库 `geosite/` 目录，客户端通过 jsdelivr 拉取：
+规则集直接指向 MetaCubeX 官方源（`meta-rules-dat`），社区持续更新，**无需自己维护**：
 
 ```
-https://cdn.jsdelivr.net/gh/BradMa1/clash-rules@main/geosite/cn.mrs
+https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/cn.mrs
 ```
 
-国内识别用的规则集（private / bank-cn / cn / geolocation-cn）都在这里，VPS 废了也不影响国内分流。
+国内识别用的规则集（private / bank-cn / cn / geolocation-cn）都来自官方源，VPS 废了也不影响国内分流。
