@@ -7,7 +7,7 @@
 # 节点来自你的订阅全量，不按地区拆 provider。换订阅只改下面 proxy-providers 那一行。
 #
 # 国内流量（含银行 App）三层直连：银行域名 → geosite:cn → GEOIP,CN。
-# 需要「所有流量都走代理」时，切「🌐 全局代理」或客户端内核的 GLOBAL 模式。
+# 需要「所有流量都走代理」时，切客户端内核的 GLOBAL 模式。
 
 mixed-port: 7890
 allow-lan: false
@@ -45,6 +45,13 @@ dns:
   fallback:
     - https://1.1.1.1/dns-query
     - https://dns.google/dns-query
+  # 关键：节点自己的域名必须用国内 DNS 直连解析，不能用境外 DoH。
+  # 否则死锁——要连节点得先解析节点域名，解析又走境外 DoH(1.1.1.1)，
+  # 而访问 1.1.1.1 又要走代理，代理就是连节点，绕回原点超时。
+  # 纯 IP 节点（荷兰/新加坡）不受影响，所以只有域名型节点（香港/美国）连不上。
+  # 把你的节点域名加到这里（通配符），有多个就写多行。
+  nameserver-policy:
+    "+.brad.dpdns.org": [223.5.5.5, 119.29.29.29]
 
 # ------------------------------------------------- GeoIP / GeoSite 数据库
 # GEOIP,CN 要用；默认的 GitHub 源国内拉不动，换 jsdelivr（cdn 比 testingcf 稳）。
