@@ -13,7 +13,8 @@ mixed-port: 7890
 allow-lan: false
 mode: rule
 log-level: warning
-ipv6: false
+# 关键：独角鲸节点全是 IPv6 地址，必须开启 IPv6，否则内核无法连接 IPv6 节点。
+ipv6: true
 unified-delay: true
 tcp-concurrent: true
 find-process-mode: off
@@ -26,7 +27,7 @@ profile:
 # ---------------------------------------------------------------- DNS
 dns:
   enable: true
-  ipv6: false
+  ipv6: true
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
   fake-ip-filter:
