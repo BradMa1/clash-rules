@@ -65,7 +65,12 @@ proxy-providers:
     url: "在这里填你的订阅地址"
     interval: 3600
     path: ./proxy_providers/all.yaml
-    health-check: {enable: true, url: http://www.gstatic.com/generate_204, interval: 300}
+    # 测速配置必须和下面「♻️ 自动选择」组完全一致，否则两组延迟数据对不上
+    # 写成多行块、url 加引号：避免 "https://" 的冒号在行内 {...} 里被误解析
+    health-check:
+      enable: true
+      url: "https://www.gstatic.com/generate_204"
+      interval: 60
 
 # ---------------------------------------------------------------- 分组
 proxy-groups:
@@ -80,12 +85,17 @@ proxy-groups:
 
   # 自动模式的本体：全部节点测速，取延迟最低的。
   # 某台连不上会被测速判死、自动排除，也就是「断了换下一个」。
+  # tolerance=0 才会真正选「延迟最低」那台；之前设 50 表示新节点要快 50ms 以上才切换。
+  # 注意：本组节点全部由 use 引入，官方说明组内的 url 不测 use 进来的节点，
+  # 延迟数据来自 provider 的 health-check，所以两处测速参数必须一致。
   - name: ♻️ 自动选择
     type: url-test
     use: [all]
-    url: http://www.gstatic.com/generate_204
-    interval: 300
-    tolerance: 50
+    url: https://www.gstatic.com/generate_204
+    interval: 60
+    timeout: 5000
+    expected-status: 204
+    tolerance: 0
     lazy: false
 
 # ---------------------------------------------------------------- 规则
